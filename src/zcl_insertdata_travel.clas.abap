@@ -28,18 +28,16 @@ CLASS zcl_insertdata_travel IMPLEMENTATION.
     total_price,
     currency_code,
     description,
-    case status when 'B' then 'A'
-    when 'P' then 'O'
-    when 'N' then 'A'
+    CASE status WHEN 'B' THEN 'A'
+    WHEN 'P' THEN 'O'
+    WHEN 'N' THEN 'A'
     ELSE 'X' END AS overall_status,
     createdby AS local_created_by,
     createdat AS local_created_at,
     lastchangedby AS local_last_changed_by,
     lastchangedat AS local_last_changed_at,
     lastchangedat AS last_changed_at
-
     ).
-
 
     out->write( 'Adding Booking Data' ).
     DELETE FROM ztbooking_mega_a.
@@ -53,38 +51,36 @@ CLASS zcl_insertdata_travel IMPLEMENTATION.
     uuid( ) AS travel_uuid,
     zttravel_mega_a~travel_uuid AS parent_uuid,
     /dmo/booking~booking_id,
-   /dmo/booking~booking_date,
+    /dmo/booking~booking_date,
     /dmo/booking~customer_id,
     /dmo/booking~carrier_id,
-     /dmo/booking~connection_id,
-     /dmo/booking~flight_date,
+    /dmo/booking~connection_id,
+    /dmo/booking~flight_date,
     /dmo/booking~flight_price,
     /dmo/booking~currency_code,
-    CASE /dmo/travel~status when 'P' then 'N'
+    CASE /dmo/travel~status WHEN 'P' THEN 'N'
     ELSE /dmo/travel~status END AS booking_status,
      zttravel_mega_a~last_changed_at AS local_last_changed_at
-
     ).
 
- out->write( 'Adding Booking Supplements Data' ).
+    out->write( 'Adding Booking Supplements Data' ).
     DELETE FROM ztbksppl_mega_a.
 
     INSERT ztbksppl_mega_a FROM (
-    SELECT FROM /dmo/book_suppl as supp
-     JOIN zttravel_mega_a as trvl ON trvl~travel_id = supp~travel_id
-     JOIN ztbooking_mega_a as book ON book~parent_uuid = trvl~travel_uuid and
+    SELECT FROM /dmo/book_suppl AS supp
+     JOIN zttravel_mega_a AS trvl ON trvl~travel_id = supp~travel_id
+     JOIN ztbooking_mega_a AS book ON book~parent_uuid = trvl~travel_uuid AND
            book~booking_id = supp~booking_id
     FIELDS
     "client,
     uuid( ) AS booksuppl_uuid,
     trvl~travel_uuid AS root_uuid,
-    book~booking_uuid as parent_uuid,
-   supp~booking_supplement_id,
-   supp~supplement_id,
+    book~booking_uuid AS parent_uuid,
+    supp~booking_supplement_id,
+    supp~supplement_id,
     supp~price,
-     supp~currency_code,
-    trvl~last_changed_at as local_last_changed_at
-
+    supp~currency_code,
+    trvl~last_changed_at AS local_last_changed_at
     ).
 
   ENDMETHOD.

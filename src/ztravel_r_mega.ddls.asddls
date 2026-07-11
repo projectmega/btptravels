@@ -1,18 +1,19 @@
 @AccessControl.authorizationCheck: #NOT_REQUIRED
 @EndUserText.label: 'Travel - Root Entity'
 @Metadata.ignorePropagatedAnnotations: true
+
 define root view entity ZTRAVEL_R_MEGA
   as select from zttravel_mega_a
-  composition [0..*] of ZBOOKING_R_MEGA as _Booking
-  association[0..1] to /DMO/I_Agency as _Agency on $projection.AgencyID = _Agency.AgencyID
-  association[0..1] to /DMO/I_Customer as _Customer on $projection.CustumerID = _Customer.CustomerID
-  association[1..1] to /DMO/I_Overall_Status_VH as _OverallStatus on $projection.OverallStatus = _OverallStatus.OverallStatus
-  association[0..1] to I_Currency as _Currency on $projection.CurrencyCode = _Currency.Currency
-  {
+  composition [0..*] of ZBOOKING_R_MEGA          as _Booking
+  association [0..1] to /DMO/I_Agency            as _Agency        on $projection.AgencyID = _Agency.AgencyID
+  association [0..1] to /DMO/I_Customer          as _Customer      on $projection.CustomerID = _Customer.CustomerID
+  association [1..1] to /DMO/I_Overall_Status_VH as _OverallStatus on $projection.OverallStatus = _OverallStatus.OverallStatus
+  association [0..1] to I_Currency               as _Currency      on $projection.CurrencyCode = _Currency.Currency
+{
   key travel_uuid           as TravelUUID,
-      travel_id             as TravelID,
-      agency_id             as AgencyID,
-      custumer_id           as CustumerID,
+     travel_id             as TravelID,
+     agency_id             as AgencyID,
+      customer_id           as CustomerID,
       begin_date            as BeginDate,
       end_date              as EndDate,
       @Semantics.amount.currencyCode: 'CurrencyCode'
@@ -36,11 +37,10 @@ define root view entity ZTRAVEL_R_MEGA
       //Total Etag Field
       @Semantics.systemDateTime.lastChangedAt: true
       last_changed_at       as LastChangedAt,
-
       _Booking,
       _Agency,
       _Customer,
       _OverallStatus,
       _Currency
-      
+
 }

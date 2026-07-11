@@ -105,4 +105,63 @@ annotate entity ZTRAVEL_C_MEGA with
   }
   TravelID;
 
+  @UI: { lineItem: [{ position: 20, importance: #HIGH}],
+      identification: [{ position: 20 }],
+      selectionField: [{ position: 20 }] }
+  AgencyID;
+
+  @UI: { lineItem: [{ position: 30, importance: #HIGH}],
+       identification: [{ position: 30 }],
+       selectionField: [{ position: 30 }] }
+  CustomerID;
+
+  @UI: { lineItem: [{ position: 40, importance: #MEDIUM }],
+         identification: [{ position: 40 }] }
+  BeginDate;
+
+  @UI: { lineItem: [{ position: 50, importance: #MEDIUM }],
+         identification: [{ position: 50 }] }
+  EndDate;
+
+  @UI: { lineItem: [{ position: 60, importance: #HIGH }],
+         identification: [{ position: 60 }] }
+  BookingFee;
+
+  @UI: { lineItem: [{ position: 70, importance: #HIGH }],
+         identification: [{ position: 70 }] }
+  TotalPrice;
+
+ /* @UI: { lineItem: [{ position: 71, importance: #HIGH}],
+       identification: [{ position: 71 }] }
+  PriceWithVat;
+  */
+
+
+  @UI: { lineItem: [{ position: 80, importance: #MEDIUM }],
+         identification: [{ position: 80 }] }
+  Description;
+
+  @UI: { lineItem: [{ position: 90, importance: #MEDIUM }],
+         identification: [{ position: 90, label: 'Status' }],
+         selectionField: [{ position: 40 }],
+         textArrangement: #TEXT_ONLY }
+  OverallStatus;
+
+  @UI.hidden: true
+  overallstatustext;
+
+  @UI.hidden: true
+  LocalCreatedBy;
+  @UI.hidden: true
+  LocalCreatedAt;
+  @UI.hidden: true
+  LocalLastChangedBy;
+  @UI.hidden: true
+  LocalLastChangedAt;
+  @UI.hidden: true
+  LastChangedAt;
+
+
+
+
 }

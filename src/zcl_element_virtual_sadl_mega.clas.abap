@@ -1,0 +1,14 @@
+CLASS zcl_element_virtual_sadl_mega DEFINITION
+  PUBLIC
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
+
+
+
+CLASS zcl_element_virtual_sadl_mega IMPLEMENTATION.
+ENDCLASS.

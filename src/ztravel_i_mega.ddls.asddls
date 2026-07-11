@@ -8,7 +8,7 @@ define root view entity ZTRAVEL_I_MEGA
   key TravelUUID,
       TravelID,
       AgencyID,
-      CustumerID,
+      CustomerID,
       BeginDate,
       EndDate,
       @Semantics.amount.currencyCode: 'CurrencyCode'
