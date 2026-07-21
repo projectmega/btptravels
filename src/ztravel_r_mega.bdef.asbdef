@@ -1,0 +1,305 @@
+/*
+Por defecto el intenta manejar en un solo class la implementación con la siguiente linea:
+managed implementation in class zbp_travel_r_mega unique;
+Pero como en este ejemplo vamos a manejar la implementacion independiente para cada entity
+para que permita el desarrollo grupal y delegarlo entonces queda:
+managed;
+*/
+managed;
+strict ( 2 ); //Version del lenguaje BDL(Behavior Definition Lenguage)
+with draft; // Indicamos que vamos a manejar borrador o Draft para el ejercicio
+
+define behavior for ZTRAVEL_R_MEGA alias Travel
+implementation in class zbp_travel_r_mega unique //Defino la class donde implemento Travel
+persistent table zttravel_mega_a //Defino la tabla de persistencia activa
+draft table zttravel_mega_d //Defino la tabla de persistencia borador o Draft
+lock master //Bloqueo de acuerdo a autorizaciones citadas abajo para CRUD Concurrencia-Persistencia
+/* Las siguientes dos lineas definimos los campos etags para manejo de concurrencia
+ los cuales estan tambien definidos en el CDS Root ZTRAVEL_R_MEGA.
+ */
+total etag LastChangedAt
+etag master LocalLastChangedAt
+/*
+ Tipos autorizaciones a nivel de instancia y a nivel global:
+ Instancia = Un registro de la aplicación RAP
+ Global = Todos los registros de la aplicación RAP
+ */
+authorization master ( instance, global )
+{
+  //Operaciones CRUD
+  create; //Operación Crear
+  update; //Operación Actualizar
+  delete; //Operación Eliminar
+
+  //Definimos asociaciones de Travel
+  /*
+   Definimos asociacion con Booking para cuando se crea travel(create) el framework
+   automaticamente crea tambien Booking con esa asociación, va manejar las caracteristicas
+   de booking a nivel de instancia o registro(features : instance), con autorización para
+   cualquier modificación en la aplicacion: crear,modificar,eliminar registro(authorization : update)
+   y definimos que va considerar Draft(with draft)
+   */
+  association _Booking { create ( features : instance, authorization : update ); with draft; }
+
+  //Especificación de los campos
+  /*
+   Framework debe manejar el campo TravelUUID de forma automatica(numbering : managed) en modo de
+   solo lectura(readonly)
+   */
+  field ( numbering : managed, readonly )
+  TravelUUID;
+
+  //Defino campos de solo lectura
+  field ( readonly )
+  TravelID,
+  OverallStatus,
+  TotalPrice,
+  LocalCreatedAt,
+  LocalCreatedBy,
+  LocalLastChangedAt,
+  LocalLastChangedBy;
+
+  //Defino campos Obligatorios
+  field ( mandatory )
+  CustomerID,
+  CurrencyCode,
+  AgencyID,
+  BeginDate,
+  EndDate;
+
+  /*Indico que el campo BookingFee si llega a cambiar su valor va afectar mi aplicación.
+   va tener caracteristicas a nivel de instancia o registro(features : instance)
+   */
+  field ( features : instance )
+  BookingFee;
+
+  //Defino determinations que son acciones dentro de la aplicación
+  /*
+   defino la función SetTravelNumber para que se ejecute solo cuando doy clic en guardar(on save)
+   dentro de la operación Create del CRUD(create;)
+   */
+  determination SetTravelNumber on save { create; }
+  /*
+   defino la función SetStatusToOpen para que se ejecute solo cuando doy clic en create(on modify)
+   dentro de la operación Create del CRUD(create;)
+   */
+  determination SetStatusToOpen on modify { create; }
+  /*
+   defino la función CalcularTotalPrice para que se ejecute solo cuando estoy creando o
+   modificando el registro (on modify) dentro de la operación Create del CRUD(create;),
+   cuando cambie valor de los campos: BookingFee y CurrencyCode(field BookingFee, CurrencyCode;)
+   */
+  determination CalcularTotalPrice on modify { create; field BookingFee, CurrencyCode; }
+
+  //Definición de Botones que tambien estan definidos en Metadata Extensions
+  /*
+   Boton AcceptTravel que es el mismo nombre que tiene en el Medata Extension con caracteristicas
+   a nivel de instancia(features : instance) con una autorización para modificar la
+   aplicación: crear,modificar,eliminar(authorization : update) y va regresar un resultado que
+   es la misma instancia( result [1] $self)
+   */
+  action ( features : instance, authorization : update ) AcceptTravel result [1] $self;
+  action ( features : instance, authorization : update ) RejectTravel result [1] $self;
+  /*
+   Botón Discount con caracteristicas a nivel instancia o registro(features : instance), con
+   autorización para modificar la aplicación: crear,modificar,eliminar(authorization : update)
+   que al dar clic manda un popup el cual definimos la entidad abstracta zdiscount_ab_mega el
+   cual se envia como parametro de entrada y regresar un resultado que es la misma
+   instancia( result [1] $self)
+   */
+  action ( features : instance, authorization : update ) deductDiscount
+    parameter zdiscount_ab_mega result [1] $self;
+
+  //Defino metodos que se pueden llamar en background
+  internal action reCalcTotalPrice;
+
+  //Defino validaciones en la aplicación
+  /*
+   defino validacion validateCustomer cuando guardo los datos(on save), dentro de la operacion CRUD
+   crear y modificar(create;) para el campo CustomerID(field CustomerID;) el cual valida que este
+   dato sea correcto.
+   */
+  validation validateCustomer on save { create; field CustomerID; }
+  validation validateAgency on save { create; field AgencyID; }
+  /*
+   defino validacion validateDates cuando guardo los datos(on save), dentro de la operacion CRUD
+   crear y modificar(create;) para los campos BeginDate y EndDate(field BeginDate, EndDate;), el
+   cual valida que los datos sean correctos y coherentes.
+   */
+  validation validateDates on save { create; field BeginDate, EndDate; }
+
+
+  //Defino acciones que ejecutan las validaciones anteriores
+  determine action validateCustomerID { validation validateCustomer; }
+  determine action validateAgencyID { validation validateAgency; }
+  determine action validateDateRange { validation validateDates; }
+
+  //Defino afectaciones que se originan de los cambios
+  side effects
+  {
+    //Todo cambio que tenga el campo BookingFee va afectar al campo TotalPrice.
+    field BookingFee affects field TotalPrice;
+    //Las validaciones van afectar los mensajes de la aplicación.
+    determine action validateCustomerID executed on field CustomerID affects messages;
+    determine action validateAgencyID executed on field AgencyID affects messages;
+    determine action validateDateRange executed on field BeginDate, field EndDate affects messages;
+  }
+
+  //Defino acciones por default que debo activar en el Draft
+  draft action Edit; //Puedo editarlo
+  draft action Activate optimized;//Cuando hago algun cambio automaticamente se active Draft
+  draft action Discard;//Puedo descartar los cambios
+  draft action Resume with additional implementation;//Puedo retomarlo para volver a modificarlo
+
+  //Relaciono las validaciones que se deben propagar en el Draft
+  draft determine action Prepare
+  {
+    validation validateCustomer;
+    validation validateAgency;
+    validation validateDates;
+
+    validation Booking~validateCustomer;
+    validation Booking~validateConnection;
+    validation Booking~validateCurrency;
+    validation Booking~validateFlightPrice;
+    validation Booking~validateStatus;
+
+    validation BookingSupplement~validateSupplement;
+    validation BookingSupplement~validateCurrency;
+    validation BookingSupplement~validatePrice;
+
+  }
+
+  //Mapeo los campos de Entity Root con los campos de la tabla activa.
+  mapping for zttravel_mega_a
+    {
+      TravelUUID         = travel_uuid;
+      TravelID           = travel_id;
+      AgencyID           = agency_id;
+      CustomerID         = customer_id;
+      BeginDate          = begin_date;
+      EndDate            = end_date;
+      BookingFee         = booking_fee;
+      TotalPrice         = total_price;
+      CurrencyCode       = currency_code;
+      Description        = description;
+      OverallStatus      = overall_status;
+      LocalCreatedBy     = local_created_by;
+      LocalCreatedAt     = local_created_at;
+      LocalLastChangedBy = local_last_changed_by;
+      LocalLastChangedAt = local_last_changed_at;
+      LastChangedAt      = last_changed_at;
+    }
+}
+
+
+define behavior for ZBOOKING_R_MEGA alias Booking
+implementation in class zbp_booking_r_mega unique
+persistent table ztbooking_mega_a
+draft table ztbooking_mega_d
+lock dependent by _Travel
+authorization dependent by _Travel
+etag master LocalLastChangedAt
+{
+  update;
+  delete;
+
+  association _Bksppl { create ( features : instance, authorization : update ); with draft; }
+  association _Travel { with draft; }
+
+  field ( numbering : managed, readonly ) BookingUUID;
+  field ( readonly ) TravelUUID, BookingID, BookingDate, LocalLastChangedAt;
+  field ( mandatory ) CustomerID, CarrierID, ConnectionID, FlightDate, FlightPrice, CurrencyCode;
+
+  determination setBookingNumber on save { create; }
+  determination setBookingDate on save { create; }
+  determination calculateTotalPrice on modify { create; field FlightPrice, CurrencyCode; }
+
+  validation validateCustomer on save { create; field CustomerID; }
+  validation validateConnection on save { create; field CarrierID, ConnectionID, FlightDate; }
+  validation validateCurrency on save { create; field CurrencyCode; }
+  validation validateFlightPrice on save { create; field FlightPrice; }
+  validation validateStatus on save { create; field BookingStatus; }
+
+  determine action validateFlightCost { validation validateFlightPrice; }
+
+  side effects
+  {
+    field FlightPrice affects field _Travel.TotalPrice;
+    determine action validateFlightCost executed on field FlightPrice affects messages;
+  }
+
+  mapping for ztbooking_mega_a
+    {
+      BookingUUID        = booking_uuid;
+      TravelUUID         = parent_uuid;
+      BookingID          = booking_id;
+      BookingDate        = booking_date;
+      CustomerID         = customer_id;
+      CarrierID          = carrier_id;
+      ConnectionID       = connection_id;
+      FlightDate         = flight_date;
+      FlightPrice        = flight_price;
+      CurrencyCode       = currency_code;
+      BookingStatus      = booking_status;
+      LocalLastChangedAt = local_last_changed_at;
+    }
+
+}
+
+define behavior for ZBKSPPL_R_MEGA alias BookingSupplement
+implementation in class zbp_bksppl_r_mega unique
+persistent table ztbksppl_mega_a
+draft table ztbksppl_mega_d
+lock dependent by _travel
+etag master LocalLastChangedAt
+authorization dependent by _travel
+{
+  update;
+  delete;
+
+  association _travel { with draft; }
+  association _Booking { with draft; }
+
+  field ( numbering : managed, readonly )
+  BooksupplUUID;
+
+  field ( readonly )
+  TravelUUID,
+  BookUUID,
+  BookingSupplementID,
+  LocalLastChangedAt;
+
+  field ( mandatory )
+  SupplementID,
+  Price,
+  CurrencyCode;
+
+  determination setBookSupplNumber on modify { create; }
+  determination calculateTotalPrice on modify { create; field Price, CurrencyCode; }
+
+  validation validateSupplement on save { create; field SupplementID; }
+  validation validateCurrency on save { create; field CurrencyCode; }
+  validation validatePrice on save { create; field Price; }
+
+  determine action validateSupplementPrice { validation validateSupplement; }
+
+  side effects
+  {
+    field Price affects field _Travel.TotalPrice;
+    determine action validateSupplementPrice executed on field SupplementID affects messages;
+  }
+
+  mapping for ztbksppl_mega_a
+    {
+      BookSupplUUID       = booksuppl_uuid;
+      TravelUUID          = root_uuid;
+      BookUUID            = parent_uuid;
+      BookingSupplementID = booking_supplement_id;
+      SupplementID        = supplement_id;
+      Price               = price;
+      CurrencyCode        = currency_code;
+      LocalLastChangedAt  = local_last_changed_at;
+    }
+
+}

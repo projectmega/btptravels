@@ -1,0 +1,5 @@
+CLASS zbp_booking_r_mega DEFINITION PUBLIC ABSTRACT FINAL FOR BEHAVIOR OF ztravel_r_mega.
+ENDCLASS.
+
+CLASS zbp_booking_r_mega IMPLEMENTATION.
+ENDCLASS.

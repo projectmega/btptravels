@@ -148,7 +148,7 @@ annotate entity ZTRAVEL_C_MEGA with
   OverallStatus;
 
   @UI.hidden: true
-  overallstatustext;
+  OverallStatusText;
 
   @UI.hidden: true
   LocalCreatedBy;
