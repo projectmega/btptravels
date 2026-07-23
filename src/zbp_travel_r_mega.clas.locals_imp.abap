@@ -1,6 +1,13 @@
 CLASS lhc_Travel DEFINITION INHERITING FROM cl_abap_behavior_handler.
   PRIVATE SECTION.
 
+    CONSTANTS:
+      BEGIN OF travel_status,
+        open     TYPE c LENGTH 1 VALUE 'O', "open
+        accepted TYPE c LENGTH 1 VALUE 'A', "Accepted
+        rejected TYPE c LENGTH 1 VALUE 'X', "Rejected
+      END OF travel_status.
+
     METHODS get_instance_features FOR INSTANCE FEATURES
       IMPORTING keys REQUEST requested_features FOR Travel RESULT result.
 
@@ -48,6 +55,48 @@ ENDCLASS.
 CLASS lhc_Travel IMPLEMENTATION.
 
   METHOD get_instance_features.
+    " EML - Entity Manipulation Language
+* yo puedo leer las entidades en modo local sin necesidad de instanciar en el behavior implementation
+* porque estan definidas en el bahaviour definition.
+    READ ENTITIES OF ztravel_r_mega IN LOCAL MODE" va leer las entidades de ztravel_r_mega
+    ENTITY travel "especificamente la entidad cuyo alias es travel
+    FIELDS ( OverallStatus ) " se trae el campo del status
+    WITH CORRESPONDING #( keys ) "la lectura se hace con universal unique identification UUID.
+  RESULT DATA(travels). "el resultado se guarda en tabla interna travels
+
+    result = VALUE #( FOR travel IN travels (
+                                        %tky = travel-%tky
+                                        %field-BookingFee = COND #(
+                                          WHEN travel-OverallStatus = travel_status-accepted
+                                              THEN if_abap_behv=>fc-f-read_only
+                                          ELSE if_abap_behv=>fc-f-unrestricted
+                                         )
+
+                                        %action-AcceptTravel = COND #(
+                                          WHEN travel-OverallStatus = travel_status-accepted
+                                              THEN if_abap_behv=>fc-o-disabled
+                                          ELSE if_abap_behv=>fc-o-enabled
+                                         )
+
+                                        %action-RejectTravel = COND #(
+                                           WHEN travel-OverallStatus = travel_status-rejected
+                                                THEN if_abap_behv=>fc-o-disabled
+                                           ELSE if_abap_behv=>fc-o-enabled
+                                          )
+
+                                        %action-deductDiscount = COND #(
+                                            WHEN travel-OverallStatus = travel_status-accepted
+                                                THEN if_abap_behv=>fc-o-disabled
+                                            ELSE if_abap_behv=>fc-o-enabled
+                                           )
+
+                                        %assoc-_Booking = COND #(
+                                            WHEN travel-OverallStatus = travel_status-rejected
+                                                THEN if_abap_behv=>fc-o-disabled
+                                            ELSE if_abap_behv=>fc-o-enabled
+                                           )
+                                     ) ).
+
   ENDMETHOD.
 
   METHOD get_instance_authorizations.
@@ -57,6 +106,26 @@ CLASS lhc_Travel IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD AcceptTravel.
+    " EML
+    MODIFY ENTITIES OF ztravel_r_mega IN LOCAL MODE
+        ENTITY Travel
+        UPDATE
+        FIELDS ( OverallStatus )
+        WITH VALUE #( FOR key IN keys (
+            %tky = key-%tky
+            OverallStatus = travel_status-accepted
+        ) ).
+
+    READ ENTITIES OF ztravel_r_mega IN LOCAL MODE
+        ENTITY Travel
+        ALL FIELDS
+        WITH CORRESPONDING #( keys )
+        RESULT DATA(travels).
+
+    result = VALUE #( FOR travel IN travels (
+        %tky   = travel-%tky
+        %param = travel
+    ) ).
   ENDMETHOD.
 
   METHOD deductDiscount.
